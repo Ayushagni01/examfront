@@ -38,7 +38,7 @@ export default function TestDetailPage() {
 
     try {
       const res = await api.post('/payments/create-order')
-      const { orderId, amount, currency, mock } = res.data
+      const { orderId, amount, currency, mock, keyId } = res.data
 
       if (mock || orderId.startsWith('order_mock_')) {
         const confirmPayment = window.confirm(
@@ -80,7 +80,7 @@ export default function TestDetailPage() {
       }
 
       const options = {
-        key: 'rzp_test_placeholder',
+        key: keyId || 'rzp_test_placeholder',
         amount: amount * 100,
         currency: currency,
         name: 'IndiaExamPrep',
