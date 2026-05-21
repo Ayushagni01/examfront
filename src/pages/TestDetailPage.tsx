@@ -3,21 +3,100 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Clock, BookOpenCheck, Users, Star, Lock, Zap, ArrowRight, ChevronLeft, Shield, AlertTriangle } from 'lucide-react'
 import { api } from '../utils/axiosInstance'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store/store'
+import { setCredentials } from '../store/authSlice'
 
 export default function TestDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth)
+  const dispatch = useDispatch()
+  const { isAuthenticated, user, token } = useSelector((state: RootState) => state.auth)
   const [test, setTest] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
+  const [paying, setPaying] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     api.get(`/test-series/${id}`).then(res => setTest(res.data)).catch(() => setError('Test not found.')).finally(() => setLoading(false))
   }, [id])
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
+  const handleBuySubscription = async () => {
+    setPaying(true)
+    setError('')
+    const loaded = await loadRazorpayScript()
+    if (!loaded) {
+      setError('Failed to load Razorpay SDK. Are you online?')
+      setPaying(false)
+      return
+    }
+
+    try {
+      const res = await api.post('/payments/create-order')
+      const { orderId, amount, currency } = res.data
+
+      const options = {
+        key: 'rzp_test_placeholder',
+        amount: amount * 100,
+        currency: currency,
+        name: 'IndiaExamPrep',
+        description: 'Prepp+ Annual Subscription',
+        order_id: orderId,
+        handler: async function (response: any) {
+          setPaying(true)
+          try {
+            const verifyRes = await api.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            })
+
+            // Fetch updated user info
+            const profileRes = await api.get('/auth/me')
+            dispatch(setCredentials({
+              user: profileRes.data,
+              token: token || ''
+            }))
+
+            alert('Congratulations! ' + verifyRes.data.message)
+          } catch (err: any) {
+            setError(err.response?.data?.message || 'Payment verification failed.')
+          } finally {
+            setPaying(false)
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          contact: user?.phone || '',
+        },
+        theme: {
+          color: '#0f172a',
+        },
+        modal: {
+          ondismiss: function () {
+            setPaying(false)
+          }
+        }
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to initiate payment. Please try again.')
+      setPaying(false)
+    }
+  }
 
   const handleStart = async () => {
     if (!isAuthenticated) { navigate('/dashboard'); return }
@@ -31,6 +110,9 @@ export default function TestDetailPage() {
       setStarting(false)
     }
   }
+
+  const isPremiumUser = user?.subscriptionType === 'PREMIUM' || user?.role === 'ROLE_PREMIUM' || user?.role === 'ROLE_ADMIN'
+  const isLocked = test?.accessType === 'PREMIUM' && !isPremiumUser
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-prepp-navy"></div></div>
   if (error && !test) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><p className="text-red-500 font-semibold">{error}</p></div>
@@ -78,14 +160,95 @@ export default function TestDetailPage() {
           </div>
 
           {/* CTA */}
-          <div className="p-6 bg-slate-50">
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-lg p-3 mb-4 flex items-center gap-2"><AlertTriangle className="h-4 w-4" />{error}</div>}
-            {test.accessType === 'PREMIUM' && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm font-medium rounded-lg p-3 mb-4 flex items-center gap-2"><Lock className="h-4 w-4" />This test requires a Prepp+ subscription</div>
+          <div className="p-6 bg-slate-50 border-t border-slate-100">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl p-4 mb-4 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
             )}
-            <button onClick={handleStart} disabled={starting} className="w-full bg-prepp-navy hover:bg-blue-800 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-premium disabled:opacity-60">
-              {starting ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> : <>{isAuthenticated ? 'Start Test' : 'Login to Start'}<ArrowRight className="h-5 w-5" /></>}
-            </button>
+            
+            {!isAuthenticated ? (
+              <div>
+                {test.accessType === 'PREMIUM' && (
+                  <div className="bg-amber-50/80 border border-amber-200 text-amber-800 text-sm font-medium rounded-xl p-4 mb-4 flex items-center gap-2.5">
+                    <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                    This is a Premium test. Please login to purchase or attempt it.
+                  </div>
+                )}
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full bg-prepp-navy hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  Login to Start <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+            ) : isLocked ? (
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-tr from-amber-500 to-orange-600 text-white p-3 rounded-xl shadow-md">
+                    <Zap className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-lg font-bold text-slate-800 flex items-center gap-2 flex-wrap">
+                      Unlock Prepp+ Annual Subscription
+                      <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        Premium
+                      </span>
+                    </h4>
+                    <p className="text-slate-600 text-sm mt-1.5 leading-relaxed">
+                      Get instant access to this test and unlock 500+ other premium test series, expert bilingual analysis, and detailed explanations.
+                    </p>
+                    <div className="mt-4 flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-800">₹349</span>
+                      <span className="text-slate-400 text-sm font-medium">/ Year</span>
+                      <span className="text-slate-300 mx-1">|</span>
+                      <span className="text-emerald-600 text-xs font-semibold bg-emerald-50 px-2.5 py-1 rounded-full">
+                        Save 75%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleBuySubscription}
+                    disabled={paying}
+                    className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    {paying ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <>
+                        Unlock Prepp+ Now <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {test.accessType === 'PREMIUM' && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium rounded-xl p-4 mb-4 flex items-center gap-2.5">
+                    <Zap className="h-4 w-4 text-emerald-600 shrink-0" />
+                    You have unlocked this test with your active Prepp+ Premium subscription!
+                  </div>
+                )}
+                <button
+                  onClick={handleStart}
+                  disabled={starting}
+                  className="w-full bg-prepp-navy hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
+                >
+                  {starting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      Start Test <ArrowRight className="h-5 w-5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
