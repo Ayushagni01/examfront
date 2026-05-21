@@ -35,16 +35,49 @@ export default function TestDetailPage() {
   const handleBuySubscription = async () => {
     setPaying(true)
     setError('')
-    const loaded = await loadRazorpayScript()
-    if (!loaded) {
-      setError('Failed to load Razorpay SDK. Are you online?')
-      setPaying(false)
-      return
-    }
 
     try {
       const res = await api.post('/payments/create-order')
-      const { orderId, amount, currency } = res.data
+      const { orderId, amount, currency, mock } = res.data
+
+      if (mock || orderId.startsWith('order_mock_')) {
+        const confirmPayment = window.confirm(
+          `[DEVELOPER MODE: Simulated Checkout]\n\nDo you want to simulate a successful payment of ₹${amount} for Prepp+ Annual Subscription?`
+        )
+        if (confirmPayment) {
+          try {
+            const verifyRes = await api.post('/payments/verify', {
+              razorpay_order_id: orderId,
+              razorpay_payment_id: 'pay_mock_' + Date.now(),
+              razorpay_signature: 'signature_mock_value',
+            })
+
+            // Fetch updated user info
+            const profileRes = await api.get('/auth/me')
+            dispatch(setCredentials({
+              user: profileRes.data,
+              token: token || ''
+            }))
+
+            alert('Congratulations! ' + verifyRes.data.message)
+          } catch (err: any) {
+            setError(err.response?.data?.message || 'Mock payment verification failed.')
+          } finally {
+            setPaying(false)
+          }
+        } else {
+          setPaying(false)
+        }
+        return
+      }
+
+      // If not mock, proceed to load Razorpay script and open modal
+      const loaded = await loadRazorpayScript()
+      if (!loaded) {
+        setError('Failed to load Razorpay SDK. Are you online?')
+        setPaying(false)
+        return
+      }
 
       const options = {
         key: 'rzp_test_placeholder',
