@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased selection:bg-prepp-navy selection:text-white;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-white/90 backdrop-blur-md border border-white/20 shadow-premium;
+  }
+  
+  .dynamic-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-premium-hover;
+  }
+}
