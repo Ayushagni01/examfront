@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage'
 import TestDetailPage from './pages/TestDetailPage'
 import TestInterface from './pages/TestInterface'
 import TestResultPage from './pages/TestResultPage'
+import ExamDetailPage from './pages/ExamDetailPage'
 
 // Admin Panel Components
 import AdminRoute from './components/AdminRoute'
@@ -28,6 +29,7 @@ function App() {
         <Route path="/" element={<RootLayout />}>
           <Route index element={<Home />} />
           <Route path="exams" element={<ExploreExams />} />
+          <Route path="exams/:slug" element={<ExamDetailPage />} />
           <Route path="test-series" element={<TestSeriesPage />} />
           <Route path="test-series/:id" element={<TestDetailPage />} />
           <Route path="current-affairs" element={<CurrentAffairsPage />} />
