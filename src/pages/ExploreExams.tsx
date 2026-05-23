@@ -7,18 +7,31 @@ export default function ExploreExams() {
   const [categories, setCategories] = useState<any[]>([])
   const [exams, setExams] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState<number | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     // Fetch categories
     api.get('/exams/categories').then(res => setCategories(res.data)).catch(() => {})
-    // Fetch all exams initially
-    fetchExams(null)
   }, [])
 
-  const fetchExams = (catId: number | null) => {
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (searchQuery.trim()) {
+        api.get(`/exams/search?q=${searchQuery}`)
+          .then(res => setExams(res.data.content || []))
+          .catch(() => setExams([]))
+      } else {
+        const url = activeCategory ? `/exams?categoryId=${activeCategory}` : '/exams'
+        api.get(url).then(res => setExams(res.data.content || [])).catch(() => {})
+      }
+    }, 300)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery, activeCategory])
+
+  const handleCategoryChange = (catId: number | null) => {
     setActiveCategory(catId)
-    const url = catId ? `/exams?categoryId=${catId}` : '/exams'
-    api.get(url).then(res => setExams(res.data.content || [])).catch(() => {})
+    setSearchQuery('')
   }
 
   return (
@@ -34,7 +47,7 @@ export default function ExploreExams() {
             <ul className="space-y-1">
               <li>
                 <button 
-                  onClick={() => fetchExams(null)}
+                  onClick={() => handleCategoryChange(null)}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeCategory === null ? 'bg-blue-50 text-prepp-navy font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
                 >
                   All Exams
@@ -43,7 +56,7 @@ export default function ExploreExams() {
               {categories.map(cat => (
                 <li key={cat.id}>
                   <button 
-                    onClick={() => fetchExams(cat.id)}
+                    onClick={() => handleCategoryChange(cat.id)}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeCategory === cat.id ? 'bg-blue-50 text-prepp-navy font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
                   >
                     {cat.name}
@@ -65,6 +78,8 @@ export default function ExploreExams() {
               <input 
                 type="text" 
                 placeholder="Search..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-prepp-navy/20 focus:border-prepp-navy transition-all"
               />
               <Search className="h-4 w-4 absolute left-3 top-3 text-slate-400" />
