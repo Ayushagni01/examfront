@@ -1,15 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '../store/store'
 import { setCredentials } from '../store/authSlice'
-import { motion } from 'framer-motion'
 import { 
   Check, 
   X, 
   ArrowRight, 
   Sparkles, 
-  Lock, 
   AlertTriangle, 
   HelpCircle, 
   ChevronDown, 
