@@ -31,7 +31,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     dispatch(logout())
-    navigate('/dashboard')
+    navigate('/login')
   }
 
   return (

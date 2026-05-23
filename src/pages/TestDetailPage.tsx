@@ -132,7 +132,7 @@ export default function TestDetailPage() {
   }
 
   const handleStart = async () => {
-    if (!isAuthenticated) { navigate('/dashboard'); return }
+    if (!isAuthenticated) { navigate('/login'); return }
     setStarting(true)
     setError('')
     try {
@@ -210,7 +210,7 @@ export default function TestDetailPage() {
                   </div>
                 )}
                 <button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/login')}
                   className="w-full bg-prepp-navy hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Login to Start <ArrowRight className="h-5 w-5" />

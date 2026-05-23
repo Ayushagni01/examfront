@@ -10,7 +10,7 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth)
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/login" replace />
   }
 
   if (user.role !== 'ROLE_ADMIN') {

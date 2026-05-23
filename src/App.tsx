@@ -10,6 +10,8 @@ import TestDetailPage from './pages/TestDetailPage'
 import TestInterface from './pages/TestInterface'
 import TestResultPage from './pages/TestResultPage'
 import ExamDetailPage from './pages/ExamDetailPage'
+import StudentDashboard from './pages/StudentDashboard'
+import PricingPage from './pages/PricingPage'
 
 // Admin Panel Components
 import AdminRoute from './components/AdminRoute'
@@ -34,10 +36,12 @@ function App() {
           <Route path="test-series/:id" element={<TestDetailPage />} />
           <Route path="current-affairs" element={<CurrentAffairsPage />} />
           <Route path="news" element={<NewsPage />} />
+          <Route path="dashboard" element={<StudentDashboard />} />
+          <Route path="pricing" element={<PricingPage />} />
         </Route>
 
         {/* Full-screen pages (no navbar/footer) */}
-        <Route path="/dashboard" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/test/:testSeriesId/attempt/:attemptId" element={<TestInterface />} />
         <Route path="/test-result/:attemptId" element={<TestResultPage />} />
 

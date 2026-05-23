@@ -30,6 +30,7 @@ export default function RootLayout() {
                 <Link to="/test-series" className="hover:text-prepp-yellow transition-colors">Test Series</Link>
                 <Link to="/current-affairs" className="hover:text-prepp-yellow transition-colors">Current Affairs</Link>
                 <Link to="/news" className="hover:text-prepp-yellow transition-colors">News</Link>
+                <Link to="/pricing" className="hover:text-prepp-yellow transition-colors">Pricing</Link>
               </nav>
             </div>
             <div className="flex items-center gap-4">
@@ -54,15 +55,17 @@ export default function RootLayout() {
                     </Link>
                   )}
                   <div className="flex items-center gap-3 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/15">
-                    <UserCircle className="h-5 w-5 text-prepp-yellow" />
-                    <span className="text-sm font-semibold max-w-[120px] truncate">{user.name}</span>
+                    <Link to="/dashboard" className="flex items-center gap-2 hover:text-prepp-yellow transition-colors">
+                      <UserCircle className="h-5 w-5 text-prepp-yellow" />
+                      <span className="text-sm font-semibold max-w-[120px] truncate">{user.name}</span>
+                    </Link>
                     <button onClick={handleLogout} className="text-white/70 hover:text-white hover:bg-white/10 p-1 rounded-full transition-colors ml-1" title="Logout">
                       <LogOut className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               ) : (
-                <Link to="/dashboard" className="border border-white/20 hover:bg-white/10 flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all">
+                <Link to="/login" className="border border-white/20 hover:bg-white/10 flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all">
                   <UserCircle className="h-5 w-5" />
                   <span>Login</span>
                 </Link>
